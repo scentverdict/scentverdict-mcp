@@ -1,0 +1,9 @@
+{
+  "name": "scentverdict",
+  "version": "2.0.0",
+  "mcpServers": {
+    "scentverdict": {
+      "httpUrl": "https://scentverdict.com/mcp"
+    }
+  }
+}

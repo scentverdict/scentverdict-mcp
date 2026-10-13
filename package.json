@@ -1,0 +1,8 @@
+{
+  "name": "scentverdict-mcp",
+  "version": "2.0.0",
+  "description": "Fragrance catalogue with verdicts, similarity scores, scent profiles, drydowns and local prices. Hosted, free, read-only MCP server.",
+  "homepage": "https://scentverdict.com/connect",
+  "private": true,
+  "license": "MIT"
+}

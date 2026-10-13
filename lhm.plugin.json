@@ -1,0 +1,1818 @@
+{
+  "cloudEndpoint": "https://scentverdict.com/mcp",
+  "description": "Fragrance catalogue with verdicts, similarity scores, scent profiles, drydowns and local prices. Hosted, free, read-only MCP server.",
+  "homepage": "https://scentverdict.com/connect",
+  "identifier": "scentverdict-mcp",
+  "name": "ScentVerdict",
+  "prompts": [],
+  "resources": [],
+  "tools": [
+    {
+      "name": "get_scent_profile",
+      "title": "Scent Profile and Drydown",
+      "description": "Get how a fragrance develops over the wear: opening, heart and base phases, the notes in each, and how many hours each note persists on skin. Use this when the user asks how something evolves, how long it lasts, how it changes through the day, or what the drydown is like. The per-note hours are values held by ScentVerdict against each note rather than a general impression of the fragrance, and they are estimates. Use get_fragrance instead for the verdict, price and general description.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "description": "The fragrance slug. Use search_fragrances if you do not have one.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Fragrance name.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "slug": {
+            "description": "Stable identifier.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phases": {
+            "description": "Notes grouped by phase: top, heart, base.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "phase": {
+                  "description": "Phase name: top, heart, base, or unspecified.",
+                  "type": "string"
+                },
+                "notes": {
+                  "description": "Notes in this phase, heaviest first.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "note": {
+                        "description": "Note name.",
+                        "type": "string"
+                      },
+                      "slug": {
+                        "description": "Note slug.",
+                        "type": "string"
+                      },
+                      "family": {
+                        "description": "Olfactory family. Null when unclassified.",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "substantivityHours": {
+                        "description": "Expected hours on skin. Null when unknown.",
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "volatilityClass": {
+                        "description": "Intrinsic volatility class. Null when unknown.",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "note",
+                      "slug",
+                      "family",
+                      "substantivityHours",
+                      "volatilityClass"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "phase",
+                "notes"
+              ]
+            }
+          },
+          "longestLastingNoteHours": {
+            "description": "Hours the longest-lasting note persists. Null when unknown.",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "url": {
+            "description": "Canonical page URL, carrying the scent wheel and drydown timeline.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notFound": {
+            "description": "Set when the fragrance is not in the catalogue.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "notFound": {
+                "description": "Always true. The requested fragrance is not in the catalogue.",
+                "type": "boolean"
+              },
+              "query": {
+                "description": "What was asked for.",
+                "type": "string"
+              },
+              "suggestions": {
+                "description": "Close catalogue entries the user may have meant. May be empty. Never treat these as the answer without confirming.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "description": "Stable identifier. Pass this to other tools.",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Fragrance name without the brand.",
+                      "type": "string"
+                    },
+                    "brand": {
+                      "description": "Brand name.",
+                      "type": "string"
+                    },
+                    "concentration": {
+                      "description": "Concentration, for example Edt or Edp. Null when unknown.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "yearLaunched": {
+                      "description": "Year first launched. Null when unknown.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "url": {
+                      "description": "Canonical page URL.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "slug",
+                    "name",
+                    "brand",
+                    "concentration",
+                    "yearLaunched",
+                    "url"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "notFound",
+              "query",
+              "suggestions"
+            ]
+          },
+          "error": {
+            "description": "Set when the profile could not be read.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "phases",
+          "longestLastingNoteHours",
+          "url",
+          "notFound",
+          "error"
+        ]
+      },
+      "annotations": {
+        "title": "Scent Profile and Drydown",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "search_fragrances",
+      "title": "Search Fragrances by Name",
+      "description": "Resolve a fragrance name to catalogue entries. Call this FIRST whenever a name is partial, misspelled, or could mean more than one product, then pass the returned slug to another tool. Many fragrances share a name across concentrations and launch years, and flankers hide behind qualifiers, so guessing the variant silently produces the wrong answer for the rest of the conversation. Results carry concentration and launch year precisely so you can tell them apart, and you should offer the user the choice when several match. Use get_fragrance instead when you already hold an exact slug.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "description": "Name or partial name to look up. Minimum 2 characters.",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Maximum results. Default 8, maximum 20.",
+            "type": "integer",
+            "default": 8
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "description": "Stable identifier. Pass this to other tools.",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Fragrance name without the brand.",
+                  "type": "string"
+                },
+                "brand": {
+                  "description": "Brand name.",
+                  "type": "string"
+                },
+                "concentration": {
+                  "description": "Concentration, for example Edt or Edp. Null when unknown.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "yearLaunched": {
+                  "description": "Year first launched. Null when unknown.",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "description": "Canonical page URL.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "slug",
+                "name",
+                "brand",
+                "concentration",
+                "yearLaunched",
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "result"
+        ]
+      },
+      "annotations": {
+        "title": "Search Fragrances by Name",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "find_similar_fragrances",
+      "title": "Find Similar Fragrances",
+      "description": "Find fragrances similar to one the user already knows, optionally steered in a direction such as cheaper, fresher, longer lasting or less sweet. Use this whenever the user names a fragrance and wants something like it: a cheaper alternative, a budget version, something that smells similar, or a gift for someone whose current fragrance they know ('he wears X, what else would suit him'). Each match carries a similarity score computed by ScentVerdict for that specific pair. The cheaper direction lists pairings ScentVerdict has curated first, then similar fragrances priced below the anchor where we hold its price. Each match carries its bottle price for the user's country, in the shop's own currency. Use recommend_fragrances instead when the user names no fragrance to anchor on.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "anchorSlug": {
+            "description": "Slug of the fragrance to anchor on. Use search_fragrances first if you do not have one.",
+            "type": "string"
+          },
+          "direction": {
+            "description": "How to steer results away from the anchor. Defaults to the closest overall match.",
+            "type": "string",
+            "enum": [
+              "Similar",
+              "Cheaper",
+              "Fresher",
+              "LongerLasting",
+              "MoreIntense",
+              "LessSweet"
+            ],
+            "default": "Similar"
+          },
+          "limit": {
+            "description": "Maximum results. Default 5, maximum 10.",
+            "type": "integer",
+            "default": 5
+          },
+          "country": {
+            "description": "The user's country as an ISO 3166-1 alpha-2 code, for example US, DE or GB. Prices are for this country, in the shop's own currency. Pass it whenever you know where the user is. When omitted, the client's location hint is used if it sent one, otherwise GB.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "anchorSlug"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "anchorSlug": {
+            "description": "The fragrance the results were derived from.",
+            "type": "string"
+          },
+          "direction": {
+            "description": "How results were steered away from the anchor.",
+            "type": "string"
+          },
+          "results": {
+            "description": "Ranked matches, closest first. May be empty.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fragrance": {
+                  "description": "The matched fragrance.",
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "description": "Stable identifier. Pass this to other tools.",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Fragrance name without the brand.",
+                      "type": "string"
+                    },
+                    "brand": {
+                      "description": "Brand name.",
+                      "type": "string"
+                    },
+                    "brandSlug": {
+                      "description": "Brand slug.",
+                      "type": "string"
+                    },
+                    "concentration": {
+                      "description": "Concentration, for example Edt, Edp or Parfum. Null when unknown.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "yearLaunched": {
+                      "description": "Year first launched. Null when unknown.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "verdictBadge": {
+                      "description": "Editorial classification: Favourite, Statement or Acquired. Null when not yet classified.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verdict": {
+                      "description": "The full ScentVerdict editorial verdict. Null when this row came from a source that carries no verdict.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "keyNotes": {
+                      "description": "The most characteristic notes. May be empty.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "price": {
+                      "description": "Cheapest full-size bottle for the user's country, in the shop's own currency. Excludes samples and decants. Null when we hold no bottle price a shop will sell to that country.",
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "amount": {
+                          "description": "The bottle price, in Currency. This is the shop's own price, never a conversion.",
+                          "type": "number"
+                        },
+                        "currency": {
+                          "description": "ISO 4217 currency code of Amount, for example GBP, USD or EUR. The shop's own currency.",
+                          "type": "string"
+                        },
+                        "sizeMl": {
+                          "description": "Bottle size in millilitres that Amount applies to. 0 means the shop did not state a size.",
+                          "type": "number"
+                        },
+                        "pricePerMl": {
+                          "description": "Amount divided by SizeMl, in Currency. USE THIS to compare value between fragrances priced in the same currency, never the bottle price - a small bottle can look cheap while costing far more per millilitre. Null when the size is unknown.",
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "excludesTax": {
+                          "description": "True when the shop quotes this price before sales tax, as US shops do. Say so when you quote it.",
+                          "type": "boolean"
+                        },
+                        "fromAbroad": {
+                          "description": "True when no shop in the user's own customs area sells a bottle, so this is the cheapest bottle from a shop in another country that delivers to them.",
+                          "type": "boolean"
+                        },
+                        "shipsFrom": {
+                          "description": "ISO 3166-1 alpha-2 country the shop sells from, for example GB or US.",
+                          "type": "string"
+                        },
+                        "importChargesMayApply": {
+                          "description": "True when the user may have to pay import charges on top of Amount. Say 'import charges may apply' when you quote it.",
+                          "type": "boolean"
+                        },
+                        "estimate": {
+                          "description": "Rough value of Amount in the user's currency, at a published reference rate. Present only when Currency differs from the user's currency and a recent rate exists. For orientation only: never use it to rank, compare or filter prices.",
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "amount": {
+                              "description": "The price converted to Currency, in whole units. Approximate.",
+                              "type": "number"
+                            },
+                            "currency": {
+                              "description": "ISO 4217 code of the user's currency.",
+                              "type": "string"
+                            },
+                            "rateDate": {
+                              "description": "Date of the reference rate used, as YYYY-MM-DD. The European Central Bank's rate, or Frankfurter's for a currency the ECB does not publish.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "amount",
+                            "currency",
+                            "rateDate"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "amount",
+                        "currency",
+                        "sizeMl",
+                        "pricePerMl",
+                        "excludesTax",
+                        "fromAbroad",
+                        "shipsFrom",
+                        "importChargesMayApply",
+                        "estimate"
+                      ]
+                    },
+                    "imageUrl": {
+                      "description": "Bottle image URL. Null when we hold no image.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "scentArtUrl": {
+                      "description": "ScentArt visual URL, generated from this fragrance's own composition. Null when not yet rendered.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "url": {
+                      "description": "Canonical page URL, carrying the interactive scent wheel, drydown timeline and full descriptor profile.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "slug",
+                    "name",
+                    "brand",
+                    "brandSlug",
+                    "concentration",
+                    "yearLaunched",
+                    "verdictBadge",
+                    "verdict",
+                    "keyNotes",
+                    "price",
+                    "imageUrl",
+                    "scentArtUrl",
+                    "url"
+                  ]
+                },
+                "similarityScore": {
+                  "description": "Similarity score out of 100. Null when the source carries no score.",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "whySimilar": {
+                  "description": "What the two have in common. Null when we hold no written comparison.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "keyDifference": {
+                  "description": "How the two differ. Null when we hold no written comparison.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sharedNotes": {
+                  "description": "Notes present in both. May be empty.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "fragrance",
+                "similarityScore",
+                "whySimilar",
+                "keyDifference",
+                "sharedNotes"
+              ]
+            }
+          },
+          "reason": {
+            "description": "Why the result set is empty. Null when results were found.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notFound": {
+            "description": "Set when the anchor fragrance is not in the catalogue.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "notFound": {
+                "description": "Always true. The requested fragrance is not in the catalogue.",
+                "type": "boolean"
+              },
+              "query": {
+                "description": "What was asked for.",
+                "type": "string"
+              },
+              "suggestions": {
+                "description": "Close catalogue entries the user may have meant. May be empty. Never treat these as the answer without confirming.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "description": "Stable identifier. Pass this to other tools.",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Fragrance name without the brand.",
+                      "type": "string"
+                    },
+                    "brand": {
+                      "description": "Brand name.",
+                      "type": "string"
+                    },
+                    "concentration": {
+                      "description": "Concentration, for example Edt or Edp. Null when unknown.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "yearLaunched": {
+                      "description": "Year first launched. Null when unknown.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "url": {
+                      "description": "Canonical page URL.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "slug",
+                    "name",
+                    "brand",
+                    "concentration",
+                    "yearLaunched",
+                    "url"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "notFound",
+              "query",
+              "suggestions"
+            ],
+            "default": null
+          },
+          "market": {
+            "description": "The country the prices in this result are for, its currency, and how it was chosen.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "country": {
+                "description": "ISO 3166-1 alpha-2 country the prices are for, for example GB, US or DE.",
+                "type": "string"
+              },
+              "countryName": {
+                "description": "The country's name in English.",
+                "type": "string"
+              },
+              "currency": {
+                "description": "ISO 4217 code of that country's currency. Budgets are read in this currency.",
+                "type": "string"
+              },
+              "source": {
+                "description": "How the country was chosen: 'argument' (the country you passed), 'clientHint' (the client's location hint), or 'default' (GB, used when neither was given - ask the user for their country if it matters).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "country",
+              "countryName",
+              "currency",
+              "source"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "anchorSlug",
+          "direction",
+          "results",
+          "reason"
+        ]
+      },
+      "annotations": {
+        "title": "Find Similar Fragrances",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "compare_fragrances",
+      "title": "Compare Two Fragrances",
+      "description": "Compare exactly two fragrances side by side using ScentVerdict's own note data: which notes they share, which differ, both verdicts, and both prices for the user's country. Use this whenever the user is choosing between two named fragrances, or asks which of two is better, or how two differ. Use find_similar_fragrances instead when they want alternatives to one fragrance rather than a head to head.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "slugA": {
+            "description": "Slug of the first fragrance.",
+            "type": "string"
+          },
+          "slugB": {
+            "description": "Slug of the second fragrance.",
+            "type": "string"
+          },
+          "country": {
+            "description": "The user's country as an ISO 3166-1 alpha-2 code, for example US, DE or GB. Prices are for this country, in the shop's own currency. Pass it whenever you know where the user is. When omitted, the client's location hint is used if it sent one, otherwise GB.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "slugA",
+          "slugB"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "description": "The first fragrance.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "slug": {
+                "description": "Stable identifier. Pass this to other tools.",
+                "type": "string"
+              },
+              "name": {
+                "description": "Fragrance name without the brand.",
+                "type": "string"
+              },
+              "brand": {
+                "description": "Brand name.",
+                "type": "string"
+              },
+              "brandSlug": {
+                "description": "Brand slug.",
+                "type": "string"
+              },
+              "concentration": {
+                "description": "Concentration, for example Edt, Edp or Parfum. Null when unknown.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "yearLaunched": {
+                "description": "Year first launched. Null when unknown.",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "verdictBadge": {
+                "description": "Editorial classification: Favourite, Statement or Acquired. Null when not yet classified.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "verdict": {
+                "description": "The full ScentVerdict editorial verdict. Null when this row came from a source that carries no verdict.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "keyNotes": {
+                "description": "The most characteristic notes. May be empty.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "price": {
+                "description": "Cheapest full-size bottle for the user's country, in the shop's own currency. Excludes samples and decants. Null when we hold no bottle price a shop will sell to that country.",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "amount": {
+                    "description": "The bottle price, in Currency. This is the shop's own price, never a conversion.",
+                    "type": "number"
+                  },
+                  "currency": {
+                    "description": "ISO 4217 currency code of Amount, for example GBP, USD or EUR. The shop's own currency.",
+                    "type": "string"
+                  },
+                  "sizeMl": {
+                    "description": "Bottle size in millilitres that Amount applies to. 0 means the shop did not state a size.",
+                    "type": "number"
+                  },
+                  "pricePerMl": {
+                    "description": "Amount divided by SizeMl, in Currency. USE THIS to compare value between fragrances priced in the same currency, never the bottle price - a small bottle can look cheap while costing far more per millilitre. Null when the size is unknown.",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "excludesTax": {
+                    "description": "True when the shop quotes this price before sales tax, as US shops do. Say so when you quote it.",
+                    "type": "boolean"
+                  },
+                  "fromAbroad": {
+                    "description": "True when no shop in the user's own customs area sells a bottle, so this is the cheapest bottle from a shop in another country that delivers to them.",
+                    "type": "boolean"
+                  },
+                  "shipsFrom": {
+                    "description": "ISO 3166-1 alpha-2 country the shop sells from, for example GB or US.",
+                    "type": "string"
+                  },
+                  "importChargesMayApply": {
+                    "description": "True when the user may have to pay import charges on top of Amount. Say 'import charges may apply' when you quote it.",
+                    "type": "boolean"
+                  },
+                  "estimate": {
+                    "description": "Rough value of Amount in the user's currency, at a published reference rate. Present only when Currency differs from the user's currency and a recent rate exists. For orientation only: never use it to rank, compare or filter prices.",
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "amount": {
+                        "description": "The price converted to Currency, in whole units. Approximate.",
+                        "type": "number"
+                      },
+                      "currency": {
+                        "description": "ISO 4217 code of the user's currency.",
+                        "type": "string"
+                      },
+                      "rateDate": {
+                        "description": "Date of the reference rate used, as YYYY-MM-DD. The European Central Bank's rate, or Frankfurter's for a currency the ECB does not publish.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "amount",
+                      "currency",
+                      "rateDate"
+                    ]
+                  }
+                },
+                "required": [
+                  "amount",
+                  "currency",
+                  "sizeMl",
+                  "pricePerMl",
+                  "excludesTax",
+                  "fromAbroad",
+                  "shipsFrom",
+                  "importChargesMayApply",
+                  "estimate"
+                ]
+              },
+              "imageUrl": {
+                "description": "Bottle image URL. Null when we hold no image.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "scentArtUrl": {
+                "description": "ScentArt visual URL, generated from this fragrance's own composition. Null when not yet rendered.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "description": "Canonical page URL, carrying the interactive scent wheel, drydown timeline and full descriptor profile.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "slug",
+              "name",
+              "brand",
+              "brandSlug",
+              "concentration",
+              "yearLaunched",
+              "verdictBadge",
+              "verdict",
+              "keyNotes",
+              "price",
+              "imageUrl",
+              "scentArtUrl",
+              "url"
+            ]
+          },
+          "b": {
+            "description": "The second fragrance.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "slug": {
+                "description": "Stable identifier. Pass this to other tools.",
+                "type": "string"
+              },
+              "name": {
+                "description": "Fragrance name without the brand.",
+                "type": "string"
+              },
+              "brand": {
+                "description": "Brand name.",
+                "type": "string"
+              },
+              "brandSlug": {
+                "description": "Brand slug.",
+                "type": "string"
+              },
+              "concentration": {
+                "description": "Concentration, for example Edt, Edp or Parfum. Null when unknown.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "yearLaunched": {
+                "description": "Year first launched. Null when unknown.",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "verdictBadge": {
+                "description": "Editorial classification: Favourite, Statement or Acquired. Null when not yet classified.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "verdict": {
+                "description": "The full ScentVerdict editorial verdict. Null when this row came from a source that carries no verdict.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "keyNotes": {
+                "description": "The most characteristic notes. May be empty.",
+                "$ref": "#/properties/a/properties/keyNotes",
+                "items": {}
+              },
+              "price": {
+                "description": "Cheapest full-size bottle for the user's country, in the shop's own currency. Excludes samples and decants. Null when we hold no bottle price a shop will sell to that country.",
+                "$ref": "#/properties/a/properties/price"
+              },
+              "imageUrl": {
+                "description": "Bottle image URL. Null when we hold no image.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "scentArtUrl": {
+                "description": "ScentArt visual URL, generated from this fragrance's own composition. Null when not yet rendered.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "description": "Canonical page URL, carrying the interactive scent wheel, drydown timeline and full descriptor profile.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "slug",
+              "name",
+              "brand",
+              "brandSlug",
+              "concentration",
+              "yearLaunched",
+              "verdictBadge",
+              "verdict",
+              "keyNotes",
+              "price",
+              "imageUrl",
+              "scentArtUrl",
+              "url"
+            ]
+          },
+          "sharedNotes": {
+            "description": "Notes present in both.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onlyInA": {
+            "description": "Notes only in the first.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onlyInB": {
+            "description": "Notes only in the second.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "comparisonUrl": {
+            "description": "Canonical URL of the comparison page.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notFound": {
+            "description": "Set when either fragrance is not in the catalogue.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "notFound": {
+                "description": "Always true. The requested fragrance is not in the catalogue.",
+                "type": "boolean"
+              },
+              "query": {
+                "description": "What was asked for.",
+                "type": "string"
+              },
+              "suggestions": {
+                "description": "Close catalogue entries the user may have meant. May be empty. Never treat these as the answer without confirming.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "description": "Stable identifier. Pass this to other tools.",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Fragrance name without the brand.",
+                      "type": "string"
+                    },
+                    "brand": {
+                      "description": "Brand name.",
+                      "type": "string"
+                    },
+                    "concentration": {
+                      "description": "Concentration, for example Edt or Edp. Null when unknown.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "yearLaunched": {
+                      "description": "Year first launched. Null when unknown.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "url": {
+                      "description": "Canonical page URL.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "slug",
+                    "name",
+                    "brand",
+                    "concentration",
+                    "yearLaunched",
+                    "url"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "notFound",
+              "query",
+              "suggestions"
+            ]
+          },
+          "error": {
+            "description": "Set when the comparison could not be completed.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "market": {
+            "description": "The country the prices in this result are for, its currency, and how it was chosen.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "country": {
+                "description": "ISO 3166-1 alpha-2 country the prices are for, for example GB, US or DE.",
+                "type": "string"
+              },
+              "countryName": {
+                "description": "The country's name in English.",
+                "type": "string"
+              },
+              "currency": {
+                "description": "ISO 4217 code of that country's currency. Budgets are read in this currency.",
+                "type": "string"
+              },
+              "source": {
+                "description": "How the country was chosen: 'argument' (the country you passed), 'clientHint' (the client's location hint), or 'default' (GB, used when neither was given - ask the user for their country if it matters).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "country",
+              "countryName",
+              "currency",
+              "source"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "a",
+          "b",
+          "sharedNotes",
+          "onlyInA",
+          "onlyInB",
+          "comparisonUrl",
+          "notFound",
+          "error"
+        ]
+      },
+      "annotations": {
+        "title": "Compare Two Fragrances",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "recommend_fragrances",
+      "title": "Recommend Fragrances",
+      "description": "Recommend fragrances matching what the user describes: season, occasion, budget, strength, staying power and notes they like. Use this when the user wants a suggestion but names no fragrance to work from - for example something for winter, for the office, or under a budget. Season, occasion and intensity are scored numerically per fragrance in ScentVerdict, and the budget is applied against current bottle prices for the user's country, so the constraints are filtered rather than approximated. Each priced row carries its price in the shop's own currency, and the bottle size and price per millilitre wherever the retailer published a size. Pass as many of the constraints as the user gave; all are optional. Use find_similar_fragrances instead when they name a fragrance to anchor on.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "season": {
+            "description": "Season the fragrance is for.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Spring",
+              "Summer",
+              "Autumn",
+              "Winter",
+              null
+            ],
+            "default": null
+          },
+          "occasion": {
+            "description": "Occasion the fragrance is for.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Office",
+              "Date",
+              "Casual",
+              "Formal",
+              "Sport",
+              null
+            ],
+            "default": null
+          },
+          "budgetMax": {
+            "description": "Maximum price for a full-size bottle, in the currency of the user's country (USD for US, EUR for DE, GBP for GB). Only prices in that currency are filtered.",
+            "type": [
+              "number",
+              "null"
+            ],
+            "default": null
+          },
+          "genderPresentation": {
+            "description": "Who the fragrance presents as.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Masculine",
+              "Feminine",
+              "Unisex",
+              null
+            ],
+            "default": null
+          },
+          "intensity": {
+            "description": "How strong the fragrance should be.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Sheer",
+              "Light",
+              "Moderate",
+              "Strong",
+              "Potent",
+              null
+            ],
+            "default": null
+          },
+          "longevityMin": {
+            "description": "Minimum staying power.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Fleeting",
+              "Short",
+              "Moderate",
+              "Long",
+              "Beast",
+              null
+            ],
+            "default": null
+          },
+          "noteLoved": {
+            "description": "A single note the user likes, for example vanilla.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          },
+          "limit": {
+            "description": "Maximum results. Default 5, maximum 10.",
+            "type": "integer",
+            "default": 5
+          },
+          "country": {
+            "description": "The user's country as an ISO 3166-1 alpha-2 code, for example US, DE or GB. Prices are for this country, in the shop's own currency. Pass it whenever you know where the user is. When omitted, the client's location hint is used if it sent one, otherwise GB.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "description": "Matching fragrances. May be empty when the constraints are too narrow.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "description": "Stable identifier. Pass this to other tools.",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Fragrance name without the brand.",
+                  "type": "string"
+                },
+                "brand": {
+                  "description": "Brand name.",
+                  "type": "string"
+                },
+                "brandSlug": {
+                  "description": "Brand slug.",
+                  "type": "string"
+                },
+                "concentration": {
+                  "description": "Concentration, for example Edt, Edp or Parfum. Null when unknown.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "yearLaunched": {
+                  "description": "Year first launched. Null when unknown.",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "verdictBadge": {
+                  "description": "Editorial classification: Favourite, Statement or Acquired. Null when not yet classified.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "verdict": {
+                  "description": "The full ScentVerdict editorial verdict. Null when this row came from a source that carries no verdict.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "keyNotes": {
+                  "description": "The most characteristic notes. May be empty.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "price": {
+                  "description": "Cheapest full-size bottle for the user's country, in the shop's own currency. Excludes samples and decants. Null when we hold no bottle price a shop will sell to that country.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "amount": {
+                      "description": "The bottle price, in Currency. This is the shop's own price, never a conversion.",
+                      "type": "number"
+                    },
+                    "currency": {
+                      "description": "ISO 4217 currency code of Amount, for example GBP, USD or EUR. The shop's own currency.",
+                      "type": "string"
+                    },
+                    "sizeMl": {
+                      "description": "Bottle size in millilitres that Amount applies to. 0 means the shop did not state a size.",
+                      "type": "number"
+                    },
+                    "pricePerMl": {
+                      "description": "Amount divided by SizeMl, in Currency. USE THIS to compare value between fragrances priced in the same currency, never the bottle price - a small bottle can look cheap while costing far more per millilitre. Null when the size is unknown.",
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "excludesTax": {
+                      "description": "True when the shop quotes this price before sales tax, as US shops do. Say so when you quote it.",
+                      "type": "boolean"
+                    },
+                    "fromAbroad": {
+                      "description": "True when no shop in the user's own customs area sells a bottle, so this is the cheapest bottle from a shop in another country that delivers to them.",
+                      "type": "boolean"
+                    },
+                    "shipsFrom": {
+                      "description": "ISO 3166-1 alpha-2 country the shop sells from, for example GB or US.",
+                      "type": "string"
+                    },
+                    "importChargesMayApply": {
+                      "description": "True when the user may have to pay import charges on top of Amount. Say 'import charges may apply' when you quote it.",
+                      "type": "boolean"
+                    },
+                    "estimate": {
+                      "description": "Rough value of Amount in the user's currency, at a published reference rate. Present only when Currency differs from the user's currency and a recent rate exists. For orientation only: never use it to rank, compare or filter prices.",
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "amount": {
+                          "description": "The price converted to Currency, in whole units. Approximate.",
+                          "type": "number"
+                        },
+                        "currency": {
+                          "description": "ISO 4217 code of the user's currency.",
+                          "type": "string"
+                        },
+                        "rateDate": {
+                          "description": "Date of the reference rate used, as YYYY-MM-DD. The European Central Bank's rate, or Frankfurter's for a currency the ECB does not publish.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "amount",
+                        "currency",
+                        "rateDate"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "amount",
+                    "currency",
+                    "sizeMl",
+                    "pricePerMl",
+                    "excludesTax",
+                    "fromAbroad",
+                    "shipsFrom",
+                    "importChargesMayApply",
+                    "estimate"
+                  ]
+                },
+                "imageUrl": {
+                  "description": "Bottle image URL. Null when we hold no image.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "scentArtUrl": {
+                  "description": "ScentArt visual URL, generated from this fragrance's own composition. Null when not yet rendered.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "description": "Canonical page URL, carrying the interactive scent wheel, drydown timeline and full descriptor profile.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "slug",
+                "name",
+                "brand",
+                "brandSlug",
+                "concentration",
+                "yearLaunched",
+                "verdictBadge",
+                "verdict",
+                "keyNotes",
+                "price",
+                "imageUrl",
+                "scentArtUrl",
+                "url"
+              ]
+            }
+          },
+          "caveat": {
+            "description": "Caveat about how the constraints were applied. Null when there is nothing to qualify.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "market": {
+            "description": "The country the prices in this result are for, its currency, and how it was chosen.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "country": {
+                "description": "ISO 3166-1 alpha-2 country the prices are for, for example GB, US or DE.",
+                "type": "string"
+              },
+              "countryName": {
+                "description": "The country's name in English.",
+                "type": "string"
+              },
+              "currency": {
+                "description": "ISO 4217 code of that country's currency. Budgets are read in this currency.",
+                "type": "string"
+              },
+              "source": {
+                "description": "How the country was chosen: 'argument' (the country you passed), 'clientHint' (the client's location hint), or 'default' (GB, used when neither was given - ask the user for their country if it matters).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "country",
+              "countryName",
+              "currency",
+              "source"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "results",
+          "caveat"
+        ]
+      },
+      "annotations": {
+        "title": "Recommend Fragrances",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_fragrance",
+      "title": "Look Up a Fragrance",
+      "description": "Look up one fragrance in ScentVerdict's catalogue: its notes, ScentVerdict's own verdict, concentration, launch year, and the lowest current price for a full-size bottle for the user's country, in the shop's own currency. Use this whenever the user names a fragrance and asks what it is, what it smells like, what is in it, what it costs, or whether it is any good. Use search_fragrances first if the name is partial or could mean several variants. Use get_scent_profile instead when the question is about how it develops over the wear.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "description": "The fragrance slug, for example bleu-de-chanel. Use search_fragrances if you do not have one.",
+            "type": "string"
+          },
+          "country": {
+            "description": "The user's country as an ISO 3166-1 alpha-2 code, for example US, DE or GB. Prices are for this country, in the shop's own currency. Pass it whenever you know where the user is. When omitted, the client's location hint is used if it sent one, otherwise GB.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "slug"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "fragrance": {
+            "description": "The fragrance. Null when not found or on error.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "slug": {
+                "description": "Stable identifier. Pass this to other tools.",
+                "type": "string"
+              },
+              "name": {
+                "description": "Fragrance name without the brand.",
+                "type": "string"
+              },
+              "brand": {
+                "description": "Brand name.",
+                "type": "string"
+              },
+              "brandSlug": {
+                "description": "Brand slug.",
+                "type": "string"
+              },
+              "concentration": {
+                "description": "Concentration, for example Edt, Edp or Parfum. Null when unknown.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "yearLaunched": {
+                "description": "Year first launched. Null when unknown.",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "verdictBadge": {
+                "description": "Editorial classification: Favourite, Statement or Acquired. Null when not yet classified.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "verdict": {
+                "description": "The full ScentVerdict editorial verdict. Null when this row came from a source that carries no verdict.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "keyNotes": {
+                "description": "The most characteristic notes. May be empty.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "price": {
+                "description": "Cheapest full-size bottle for the user's country, in the shop's own currency. Excludes samples and decants. Null when we hold no bottle price a shop will sell to that country.",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "amount": {
+                    "description": "The bottle price, in Currency. This is the shop's own price, never a conversion.",
+                    "type": "number"
+                  },
+                  "currency": {
+                    "description": "ISO 4217 currency code of Amount, for example GBP, USD or EUR. The shop's own currency.",
+                    "type": "string"
+                  },
+                  "sizeMl": {
+                    "description": "Bottle size in millilitres that Amount applies to. 0 means the shop did not state a size.",
+                    "type": "number"
+                  },
+                  "pricePerMl": {
+                    "description": "Amount divided by SizeMl, in Currency. USE THIS to compare value between fragrances priced in the same currency, never the bottle price - a small bottle can look cheap while costing far more per millilitre. Null when the size is unknown.",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "excludesTax": {
+                    "description": "True when the shop quotes this price before sales tax, as US shops do. Say so when you quote it.",
+                    "type": "boolean"
+                  },
+                  "fromAbroad": {
+                    "description": "True when no shop in the user's own customs area sells a bottle, so this is the cheapest bottle from a shop in another country that delivers to them.",
+                    "type": "boolean"
+                  },
+                  "shipsFrom": {
+                    "description": "ISO 3166-1 alpha-2 country the shop sells from, for example GB or US.",
+                    "type": "string"
+                  },
+                  "importChargesMayApply": {
+                    "description": "True when the user may have to pay import charges on top of Amount. Say 'import charges may apply' when you quote it.",
+                    "type": "boolean"
+                  },
+                  "estimate": {
+                    "description": "Rough value of Amount in the user's currency, at a published reference rate. Present only when Currency differs from the user's currency and a recent rate exists. For orientation only: never use it to rank, compare or filter prices.",
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "amount": {
+                        "description": "The price converted to Currency, in whole units. Approximate.",
+                        "type": "number"
+                      },
+                      "currency": {
+                        "description": "ISO 4217 code of the user's currency.",
+                        "type": "string"
+                      },
+                      "rateDate": {
+                        "description": "Date of the reference rate used, as YYYY-MM-DD. The European Central Bank's rate, or Frankfurter's for a currency the ECB does not publish.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "amount",
+                      "currency",
+                      "rateDate"
+                    ]
+                  }
+                },
+                "required": [
+                  "amount",
+                  "currency",
+                  "sizeMl",
+                  "pricePerMl",
+                  "excludesTax",
+                  "fromAbroad",
+                  "shipsFrom",
+                  "importChargesMayApply",
+                  "estimate"
+                ]
+              },
+              "imageUrl": {
+                "description": "Bottle image URL. Null when we hold no image.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "scentArtUrl": {
+                "description": "ScentArt visual URL, generated from this fragrance's own composition. Null when not yet rendered.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "description": "Canonical page URL, carrying the interactive scent wheel, drydown timeline and full descriptor profile.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "slug",
+              "name",
+              "brand",
+              "brandSlug",
+              "concentration",
+              "yearLaunched",
+              "verdictBadge",
+              "verdict",
+              "keyNotes",
+              "price",
+              "imageUrl",
+              "scentArtUrl",
+              "url"
+            ]
+          },
+          "notFound": {
+            "description": "Set when the fragrance is not in the catalogue. Carries suggestions.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "notFound": {
+                "description": "Always true. The requested fragrance is not in the catalogue.",
+                "type": "boolean"
+              },
+              "query": {
+                "description": "What was asked for.",
+                "type": "string"
+              },
+              "suggestions": {
+                "description": "Close catalogue entries the user may have meant. May be empty. Never treat these as the answer without confirming.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "description": "Stable identifier. Pass this to other tools.",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Fragrance name without the brand.",
+                      "type": "string"
+                    },
+                    "brand": {
+                      "description": "Brand name.",
+                      "type": "string"
+                    },
+                    "concentration": {
+                      "description": "Concentration, for example Edt or Edp. Null when unknown.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "yearLaunched": {
+                      "description": "Year first launched. Null when unknown.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "url": {
+                      "description": "Canonical page URL.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "slug",
+                    "name",
+                    "brand",
+                    "concentration",
+                    "yearLaunched",
+                    "url"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "notFound",
+              "query",
+              "suggestions"
+            ]
+          },
+          "error": {
+            "description": "Set when the lookup could not be completed. Explain this rather than guessing.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "market": {
+            "description": "The country the prices in this result are for, its currency, and how it was chosen.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "country": {
+                "description": "ISO 3166-1 alpha-2 country the prices are for, for example GB, US or DE.",
+                "type": "string"
+              },
+              "countryName": {
+                "description": "The country's name in English.",
+                "type": "string"
+              },
+              "currency": {
+                "description": "ISO 4217 code of that country's currency. Budgets are read in this currency.",
+                "type": "string"
+              },
+              "source": {
+                "description": "How the country was chosen: 'argument' (the country you passed), 'clientHint' (the client's location hint), or 'default' (GB, used when neither was given - ask the user for their country if it matters).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "country",
+              "countryName",
+              "currency",
+              "source"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "fragrance",
+          "notFound",
+          "error"
+        ]
+      },
+      "annotations": {
+        "title": "Look Up a Fragrance",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "version": "2.0.0"
+}
